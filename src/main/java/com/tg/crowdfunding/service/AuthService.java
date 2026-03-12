@@ -23,8 +23,18 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
 
     public AuthResponse register(RegisterRequest request) {
+        if (request.getNom() == null || request.getNom().trim().isEmpty() ||
+            request.getEmail() == null || request.getEmail().trim().isEmpty() ||
+            request.getMotDePasse() == null || request.getMotDePasse().trim().isEmpty()) {
+            throw new IllegalArgumentException("Veuillez remplir tous les champs obligatoires.");
+        }
+
+        if (request.getMotDePasse().length() < 8) {
+            throw new IllegalArgumentException("Le mot de passe doit contenir au moins 8 caract\u00e8res.");
+        }
+
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new EmailAlreadyExistsException("Cet email est déjà utilisé");
+            throw new EmailAlreadyExistsException("Un compte avec cet email existe d\u00e9j\u00e0.");
         }
 
         User user = User.builder()
