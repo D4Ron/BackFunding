@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.List;
+import com.tg.crowdfunding.repository.PlatformSettingsRepository;
+import com.tg.crowdfunding.entity.PlatformSettings;
 import java.util.Map;
 
 @RestController
@@ -20,6 +22,7 @@ import java.util.Map;
 public class AdminController {
 
     private final AdminService adminService;
+    private final PlatformSettingsRepository platformSettingsRepository;
 
     // ===== CAMPAIGNS =====
 
@@ -78,12 +81,10 @@ public class AdminController {
 
     @GetMapping("/commission")
     public ResponseEntity<Map<String, Object>> getCommission() {
-        var settings = adminService.getStats();
-        Object currentRate = settings.get("currentCommission");
-        if(currentRate == null) {
-            currentRate = settings.get("commissionActuelle");
-        }
-        return ResponseEntity.ok(Map.of("currentCommission", currentRate != null ? currentRate : 5.0));
+        BigDecimal rate = platformSettingsRepository.findByCle("COMMISSION_RATE")
+            .map(PlatformSettings::getTauxCommission)
+            .orElse(new BigDecimal("0.05"));
+        return ResponseEntity.ok(Map.of("currentCommission", rate.multiply(BigDecimal.valueOf(100)).doubleValue()));
     }
 
     @PatchMapping("/commission")
