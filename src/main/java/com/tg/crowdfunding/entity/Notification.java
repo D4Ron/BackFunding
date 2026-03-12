@@ -2,12 +2,16 @@ package com.tg.crowdfunding.entity;
 
 import com.tg.crowdfunding.enums.NotificationType;
 import jakarta.persistence.*;
+import jakarta.persistence.Index;
 import lombok.*;
 
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "notifications")
+@Table(
+    name = "notifications",
+    indexes = @Index(name = "idx_notification_created_at", columnList = "createdAt DESC")
+)
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
 @Builder

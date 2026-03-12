@@ -53,7 +53,6 @@ public class CampaignService {
     }
 
     public List<CampaignResponse> getActiveCampaigns() {
-        refreshStatuses();
         return campaignRepository.findByStatut(CampaignStatus.ACTIVE)
                 .stream().map(this::toResponse).toList();
     }

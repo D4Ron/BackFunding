@@ -5,14 +5,20 @@ import com.tg.crowdfunding.dto.response.CampaignResponse;
 import com.tg.crowdfunding.dto.response.DashboardResponse;
 import com.tg.crowdfunding.entity.User;
 import com.tg.crowdfunding.service.CampaignService;
+import com.tg.crowdfunding.service.CloudinaryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 @RestController
@@ -20,8 +26,21 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 @RequiredArgsConstructor
 @SecurityRequirement(name = "bearerAuth")
 public class CampaignController {
-
+    
     private final CampaignService campaignService;
+    private final CloudinaryService cloudinaryService;
+
+    @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('PORTEUR_DE_PROJET')")
+    public ResponseEntity<Map<String, String>> uploadImage(@RequestParam("file") MultipartFile file) {
+        try {
+            String url = cloudinaryService.uploadImage(file.getBytes(), "campagnes");
+            return ResponseEntity.ok(Map.of("url", url));
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Échec de l'upload de l'image"));
+        }
+    }
 
     @GetMapping("/dashboard")
     @PreAuthorize("hasRole('PORTEUR_DE_PROJET')")

@@ -14,7 +14,7 @@ public class ContributionRequest {
 
     @NotBlank(message = "Le numero de telephone est obligatoire")
     @Pattern(regexp = "^(\\+228|00228)?[0-9]{8}$",
-            message = "Numero de telephone togolais invalide")
+            message = "Numéro invalide. Format attendu: 90000000 (8 chiffres, sans espaces)")
     private String telephone;
 
     @NotBlank(message = "La methode de paiement est obligatoire")

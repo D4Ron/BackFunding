@@ -7,8 +7,10 @@ import com.tg.crowdfunding.entity.User;
 import com.tg.crowdfunding.exception.EmailAlreadyExistsException;
 import com.tg.crowdfunding.repository.UserRepository;
 import com.tg.crowdfunding.security.JwtUtils;
+import com.tg.crowdfunding.enums.Role;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -23,15 +25,27 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
 
     public AuthResponse register(RegisterRequest request) {
-        if (request.getNom() == null || request.getNom().trim().isEmpty() ||
-            request.getEmail() == null || request.getEmail().trim().isEmpty() ||
-            request.getMotDePasse() == null || request.getMotDePasse().trim().isEmpty()) {
-            throw new IllegalArgumentException("Veuillez remplir tous les champs obligatoires.");
+        // Normalize phone
+        if (request.getTelephone() != null) {
+            request.setTelephone(request.getTelephone().replaceAll("\\s+", ""));
         }
 
-        if (request.getMotDePasse().length() < 8) {
-            throw new IllegalArgumentException("Le mot de passe doit contenir au moins 8 caract\u00e8res.");
+        // Require phone for porteur and contributeur
+        if (request.getRole() != Role.ADMIN) {
+            if (request.getTelephone() == null || request.getTelephone().isBlank()) {
+                throw new IllegalArgumentException(
+                    "Le numéro de téléphone est obligatoire pour ce type de compte."
+                );
+            }
         }
+
+        // Block self-registration as admin
+        if (request.getRole() == Role.ADMIN) {
+            throw new IllegalArgumentException("Rôle non autorisé à l'inscription.");
+        }
+        
+        // Bean validation handles the basic null/size checks now, 
+        // but we keep the email existence check below.
 
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new EmailAlreadyExistsException("Un compte avec cet email existe d\u00e9j\u00e0.");
@@ -68,7 +82,11 @@ public class AuthService {
         );
 
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow();
+                .orElseThrow(() -> new BadCredentialsException("Identifiants incorrects"));
+
+        if (!passwordEncoder.matches(request.getMotDePasse(), user.getMotDePasse())) {
+            throw new BadCredentialsException("Identifiants incorrects");
+        }
 
         String token = jwtUtils.generateToken(user);
 

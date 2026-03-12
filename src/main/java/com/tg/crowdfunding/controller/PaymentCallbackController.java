@@ -1,8 +1,11 @@
 package com.tg.crowdfunding.controller;
 
 import com.tg.crowdfunding.service.ContributionService;
+import com.tg.crowdfunding.util.HmacUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,8 +19,20 @@ public class PaymentCallbackController {
 
     private final ContributionService contributionService;
 
+    @Value("${app.fedapay.webhook-secret}")
+    private String webhookSecret;
+
     @PostMapping("/callback")
-    public ResponseEntity<Void> handleCallback(@RequestBody Map<String, Object> payload) {
+    public ResponseEntity<Void> handleCallback(
+            @RequestBody String rawBody,
+            @RequestHeader(value = "X-Fedapay-Signature", required = false) String signature,
+            @RequestBody Map<String, Object> payload) {
+        
+        if (signature == null || !HmacUtils.verifyHmac(rawBody, webhookSecret, signature)) {
+            log.warn("FedaPay: invalid webhook signature");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        
         log.info("FedaPay callback received: {}", payload);
 
         try {

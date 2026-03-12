@@ -3,6 +3,7 @@ package com.tg.crowdfunding.service;
 import com.tg.crowdfunding.dto.response.CampaignResponse;
 import com.tg.crowdfunding.dto.response.ContributionResponse;
 import com.tg.crowdfunding.entity.Campaign;
+import com.tg.crowdfunding.dto.UserDTO;
 import com.tg.crowdfunding.entity.User;
 import com.tg.crowdfunding.enums.CampaignStatus;
 import com.tg.crowdfunding.exception.ResourceNotFoundException;
@@ -14,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.time.format.DateTimeFormatter;
@@ -71,8 +73,17 @@ public class AdminService {
 
     // ===== USER MANAGEMENT =====
 
-    public List<User> getAllUsers() {
-        return userRepository.findAll();
+    public List<UserDTO> getAllUsers() {
+        return userRepository.findAll().stream()
+                .map(u -> new UserDTO(
+                        u.getId(),
+                        u.getNom(),
+                        u.getEmail(),
+                        u.getTelephone(),
+                        u.getRole().name(),
+                        u.getCreatedAt()
+                ))
+                .toList();
     }
 
     public User suspendUser(Long id) {
@@ -125,19 +136,27 @@ public class AdminService {
         long totalContributions = contributionRepository.count();
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-        Map<String, Long> dailyContributions = contributionRepository.findAll().stream()
+        String today = LocalDate.now().format(formatter);
+        
+        List<com.tg.crowdfunding.entity.Contribution> allSuccess = contributionRepository.findAll().stream()
                 .filter(c -> c.getStatut() != null && c.getStatut().name().equals("SUCCESS") && c.getCreatedAt() != null)
+                .toList();
+
+        Map<String, Long> dailyContributions = allSuccess.stream()
                 .collect(Collectors.groupingBy(
                         c -> c.getCreatedAt().toLocalDate().format(formatter),
                         Collectors.counting()
                 ));
+        
+        long todayCount = dailyContributions.getOrDefault(today, 0L);
 
         return Map.of(
-                "totalUtilisateurs", totalUsers,
+                "registeredUsers", totalUsers,
                 "campagnesActives", activeCampaigns,
                 "campagnesEnAttente", pendingCampaigns,
                 "totalCollecte", totalCollected,
                 "totalContributions", totalContributions,
+                "todayTransactions", todayCount,
                 "contributionsJournalieres", dailyContributions
         );
     }

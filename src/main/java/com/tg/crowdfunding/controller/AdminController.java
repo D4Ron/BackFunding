@@ -2,6 +2,7 @@ package com.tg.crowdfunding.controller;
 
 import com.tg.crowdfunding.dto.response.CampaignResponse;
 import com.tg.crowdfunding.dto.response.ContributionResponse;
+import com.tg.crowdfunding.dto.UserDTO;
 import com.tg.crowdfunding.entity.User;
 import com.tg.crowdfunding.service.AdminService;
 import lombok.RequiredArgsConstructor;
@@ -51,7 +52,7 @@ public class AdminController {
     // ===== USERS =====
 
     @GetMapping("/users")
-    public ResponseEntity<List<User>> getAllUsers() {
+    public ResponseEntity<List<UserDTO>> getAllUsers() {
         return ResponseEntity.ok(adminService.getAllUsers());
     }
 

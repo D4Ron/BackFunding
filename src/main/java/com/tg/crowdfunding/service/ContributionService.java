@@ -35,6 +35,11 @@ public class ContributionService {
     public ContributionResponse contribute(Long campaignId,
                                            ContributionRequest request,
                                            User contributeur) {
+        // Normalize phone: strip all whitespace
+        if (request.getTelephone() != null) {
+            request.setTelephone(request.getTelephone().replaceAll("\\s+", ""));
+        }
+        
         Campaign campaign = campaignService.findById(campaignId);
 
         if (campaign.getStatut() != CampaignStatus.ACTIVE) {
