@@ -90,7 +90,8 @@ public class AdminController {
     @PatchMapping("/commission")
     public ResponseEntity<Map<String, String>> updateCommission(
             @RequestParam BigDecimal rate) {
-        adminService.updateCommissionRate(rate);
+        BigDecimal fractionalRate = rate.divide(BigDecimal.valueOf(100), 4, java.math.RoundingMode.HALF_UP);
+        adminService.updateCommissionRate(fractionalRate);
         return ResponseEntity.ok(Map.of("message", "Taux de commission mis a jour"));
     }
 
