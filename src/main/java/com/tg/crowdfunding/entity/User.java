@@ -41,6 +41,8 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private boolean banni = false;
 
+    private String telephone;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

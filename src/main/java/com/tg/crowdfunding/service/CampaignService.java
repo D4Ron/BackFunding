@@ -23,8 +23,11 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
+import lombok.extern.slf4j.Slf4j;
+
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class CampaignService {
 
     private final CampaignRepository campaignRepository;
@@ -97,6 +100,9 @@ public class CampaignService {
 
     public CampaignResponse submitForValidation(Long id, User porteur) {
         Campaign campaign = findById(id);
+
+        log.info("Submit: campId={}, ownerId={}, callerEmail={}, status={}",
+                id, campaign.getPorteur().getId(), porteur.getEmail(), campaign.getStatut());
 
         if (!campaign.getPorteur().getId().equals(porteur.getId())) {
             throw new UnauthorizedException("Vous n'êtes pas le porteur de cette campagne");
