@@ -14,6 +14,7 @@ import com.tg.crowdfunding.repository.ContributionRepository;
 import com.tg.crowdfunding.repository.PlatformSettingsRepository;
 import com.tg.crowdfunding.service.MockPaymentService.PaymentResult;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +24,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ContributionService {
 
     private final ContributionRepository contributionRepository;
@@ -106,20 +108,28 @@ public class ContributionService {
                 .stream().map(this::toResponse).toList();
     }
     public void updateContributionStatus(String reference, boolean success) {
-        contributionRepository.findByReferenceTransaction(reference).ifPresent(contribution -> {
-            contribution.setStatut(success ? ContributionStatus.SUCCESS : ContributionStatus.FAILED);
-            contributionRepository.save(contribution);
+        log.info("updateContributionStatus called — reference: {}, success: {}", reference, success);
+        contributionRepository.findByReferenceTransaction(reference).ifPresentOrElse(
+            contribution -> {
+                log.info("Contribution found id={}, setting status to {}",
+                    contribution.getId(), success ? "SUCCESS" : "FAILED");
+                contribution.setStatut(success ? ContributionStatus.SUCCESS
+                                               : ContributionStatus.FAILED);
+                contributionRepository.save(contribution);
 
-            if (success) {
-                Campaign campaign = contribution.getCampaign();
-                campaign.setMontantCollecte(
+                if (success) {
+                    Campaign campaign = contribution.getCampaign();
+                    campaign.setMontantCollecte(
                         campaign.getMontantCollecte().add(contribution.getMontantNet()));
-                if (campaign.getMontantCollecte().compareTo(campaign.getObjectifCfa()) >= 0) {
-                    campaign.setStatut(CampaignStatus.FINANCEE);
+                    if (campaign.getMontantCollecte()
+                            .compareTo(campaign.getObjectifCfa()) >= 0) {
+                        campaign.setStatut(CampaignStatus.FINANCEE);
+                    }
+                    notificationService.notifyContribution(contribution);
                 }
-                notificationService.notifyContribution(contribution);
-            }
-        });
+            },
+            () -> log.warn("No contribution found for reference: {} — possible reference mismatch", reference)
+        );
     }
 
     public ContributionResponse toResponse(Contribution c) {
