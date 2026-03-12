@@ -76,6 +76,16 @@ public class AdminController {
 
     // ===== COMMISSION =====
 
+    @GetMapping("/commission")
+    public ResponseEntity<Map<String, Object>> getCommission() {
+        var settings = adminService.getStats();
+        Object currentRate = settings.get("currentCommission");
+        if(currentRate == null) {
+            currentRate = settings.get("commissionActuelle");
+        }
+        return ResponseEntity.ok(Map.of("currentCommission", currentRate != null ? currentRate : 5.0));
+    }
+
     @PatchMapping("/commission")
     public ResponseEntity<Map<String, String>> updateCommission(
             @RequestParam BigDecimal rate) {

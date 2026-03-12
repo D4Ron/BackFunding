@@ -135,17 +135,25 @@ public class CampaignService {
     }
 
     public CampaignResponse toResponse(Campaign c) {
+        BigDecimal montant = c.getMontantCollecte() != null ? c.getMontantCollecte() : BigDecimal.ZERO;
+        BigDecimal objectif = c.getObjectifCfa() != null ? c.getObjectifCfa() : BigDecimal.ONE;
+
         double pourcentage = 0;
-        if (c.getObjectifCfa().compareTo(BigDecimal.ZERO) > 0) {
-            pourcentage = c.getMontantCollecte()
-                    .divide(c.getObjectifCfa(), 4, RoundingMode.HALF_UP)
+        if (objectif.compareTo(BigDecimal.ZERO) > 0) {
+            pourcentage = montant
+                    .divide(objectif, 4, RoundingMode.HALF_UP)
                     .multiply(BigDecimal.valueOf(100))
                     .doubleValue();
         }
 
-        long joursRestants = Math.max(0, ChronoUnit.DAYS.between(LocalDate.now(), c.getDateFin()));
+        long joursRestants = 0;
+        if (c.getDateFin() != null) {
+            joursRestants = Math.max(0, ChronoUnit.DAYS.between(LocalDate.now(), c.getDateFin()));
+        }
 
         int nbContributeurs = c.getContributions() == null ? 0 : c.getContributions().size();
+        String porteurNom = (c.getPorteur() != null) ? c.getPorteur().getNom() : "Inconnu";
+        Long porteurId = (c.getPorteur() != null) ? c.getPorteur().getId() : null;
 
         return CampaignResponse.builder()
                 .id(c.getId())
@@ -154,12 +162,12 @@ public class CampaignService {
                 .categorie(c.getCategorie())
                 .imageUrl(c.getImageUrl())
                 .objectifCfa(c.getObjectifCfa())
-                .montantCollecte(c.getMontantCollecte())
+                .montantCollecte(montant)
                 .dateDebut(c.getDateDebut())
                 .dateFin(c.getDateFin())
                 .statut(c.getStatut())
-                .porteurNom(c.getPorteur().getNom())
-                .porteurId(c.getPorteur().getId())
+                .porteurNom(porteurNom)
+                .porteurId(porteurId)
                 .nombreContributeurs(nbContributeurs)
                 .pourcentageAtteint(pourcentage)
                 .joursRestants(joursRestants)
@@ -195,11 +203,11 @@ public class CampaignService {
         Map<String, BigDecimal> dailyCollections = campaignIds.isEmpty()
                 ? Map.of()
                 : contributionRepository.findByCampaignIdIn(campaignIds).stream()
-                .filter(c -> c.getStatut().name().equals("SUCCESS"))
+                .filter(c -> c.getStatut() != null && c.getStatut().name().equals("SUCCESS") && c.getCreatedAt() != null)
                 .collect(Collectors.groupingBy(
                         c -> c.getCreatedAt().toLocalDate().format(formatter),
                         Collectors.reducing(BigDecimal.ZERO,
-                                c -> c.getMontantNet(), BigDecimal::add)
+                                c -> c.getMontantNet() != null ? c.getMontantNet() : BigDecimal.ZERO, BigDecimal::add)
                 ));
 
         List<CampaignResponse> recentCampaigns = myCampaigns.stream()

@@ -34,6 +34,7 @@ public class AuthService {
                 .role(request.getRole())
                 .actif(true)
                 .banni(false)
+                .telephone(request.getTelephone())
                 .build();
 
         userRepository.save(user);

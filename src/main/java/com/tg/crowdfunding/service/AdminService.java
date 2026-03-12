@@ -115,15 +115,15 @@ public class AdminService {
         long pendingCampaigns = campaignRepository.findByStatut(CampaignStatus.EN_ATTENTE_VALIDATION).size();
 
         BigDecimal totalCollected = contributionRepository.findAll().stream()
-                .filter(c -> c.getStatut().name().equals("SUCCESS"))
-                .map(c -> c.getMontantNet())
+                .filter(c -> c.getStatut() != null && c.getStatut().name().equals("SUCCESS"))
+                .map(c -> c.getMontantNet() != null ? c.getMontantNet() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         long totalContributions = contributionRepository.count();
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         Map<String, Long> dailyContributions = contributionRepository.findAll().stream()
-                .filter(c -> c.getStatut().name().equals("SUCCESS"))
+                .filter(c -> c.getStatut() != null && c.getStatut().name().equals("SUCCESS") && c.getCreatedAt() != null)
                 .collect(Collectors.groupingBy(
                         c -> c.getCreatedAt().toLocalDate().format(formatter),
                         Collectors.counting()
@@ -142,7 +142,7 @@ public class AdminService {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
         Map<String, Long> dailyCount = contributionRepository.findAll().stream()
-                .filter(c -> c.getStatut().name().equals("SUCCESS"))
+                .filter(c -> c.getStatut() != null && c.getStatut().name().equals("SUCCESS") && c.getCreatedAt() != null)
                 .collect(Collectors.groupingBy(
                         c -> c.getCreatedAt().toLocalDate().format(formatter),
                         Collectors.counting()
@@ -150,11 +150,11 @@ public class AdminService {
         //TODO Make success a constant at the top and then use it where needed instead
 
         Map<String, BigDecimal> dailyAmount = contributionRepository.findAll().stream()
-                .filter(c -> c.getStatut().name().equals("SUCCESS"))
+                .filter(c -> c.getStatut() != null && c.getStatut().name().equals("SUCCESS") && c.getCreatedAt() != null)
                 .collect(Collectors.groupingBy(
                         c -> c.getCreatedAt().toLocalDate().format(formatter),
                         Collectors.reducing(BigDecimal.ZERO,
-                                c -> c.getMontantNet(), BigDecimal::add)
+                                c -> c.getMontantNet() != null ? c.getMontantNet() : BigDecimal.ZERO, BigDecimal::add)
                 ));
 
         return Map.of(

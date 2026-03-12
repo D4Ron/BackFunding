@@ -23,4 +23,6 @@ public class RegisterRequest {
 
     @NotNull(message = "Le rôle est obligatoire")
     private Role role;
+
+    private String telephone;
 }
