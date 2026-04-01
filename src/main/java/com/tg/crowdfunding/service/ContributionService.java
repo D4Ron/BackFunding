@@ -12,7 +12,6 @@ import com.tg.crowdfunding.exception.ResourceNotFoundException;
 import com.tg.crowdfunding.exception.UnauthorizedException;
 import com.tg.crowdfunding.repository.ContributionRepository;
 import com.tg.crowdfunding.repository.PlatformSettingsRepository;
-import com.tg.crowdfunding.service.MockPaymentService.PaymentResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -84,15 +83,10 @@ public class ContributionService {
 
         contributionRepository.save(contribution);
 
-        // Only update campaign amount if payment succeeded
-        // For sandbox testing we update immediately since webhook may not reach localhost
+        // Campaign amount is updated ONLY via webhook callback (updateContributionStatus)
+        // to avoid double-crediting when FedaPay returns success synchronously AND fires the webhook.
+        // In sandbox mode, the webhook should still fire to sandbox callback URLs.
         if (result.success()) {
-            campaign.setMontantCollecte(
-                    campaign.getMontantCollecte().add(montantNet));
-            if (campaign.getMontantCollecte()
-                    .compareTo(campaign.getObjectifCfa()) >= 0) {
-                campaign.setStatut(CampaignStatus.FINANCEE);
-            }
             notificationService.notifyContribution(contribution);
         }
         return toResponse(contribution);

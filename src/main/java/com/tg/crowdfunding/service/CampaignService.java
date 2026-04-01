@@ -11,7 +11,6 @@ import com.tg.crowdfunding.repository.CampaignRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import com.tg.crowdfunding.dto.response.DashboardResponse;
-import com.tg.crowdfunding.enums.CampaignStatus;
 import com.tg.crowdfunding.repository.ContributionRepository;
 import java.util.Map;
 import java.util.stream.Collectors;
