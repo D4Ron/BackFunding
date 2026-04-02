@@ -10,6 +10,7 @@ import com.tg.crowdfunding.enums.CampaignStatus;
 import com.tg.crowdfunding.enums.ContributionStatus;
 import com.tg.crowdfunding.exception.ResourceNotFoundException;
 import com.tg.crowdfunding.exception.UnauthorizedException;
+import com.tg.crowdfunding.repository.CampaignRepository;
 import com.tg.crowdfunding.repository.ContributionRepository;
 import com.tg.crowdfunding.repository.PlatformSettingsRepository;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,7 @@ import java.util.List;
 @Transactional
 public class ContributionService {
 
+    private final CampaignRepository campaignRepository;
     private final ContributionRepository contributionRepository;
     private final PlatformSettingsRepository platformSettingsRepository;
     private final CampaignService campaignService;
@@ -91,6 +93,7 @@ public class ContributionService {
             if (campaign.getMontantCollecte().compareTo(campaign.getObjectifCfa()) >= 0) {
                 campaign.setStatut(CampaignStatus.FINANCEE);
             }
+            campaignRepository.save(campaign);
             notificationService.notifyContribution(contribution);
         }
         return toResponse(contribution);
@@ -129,6 +132,7 @@ public class ContributionService {
                     if (campaign.getMontantCollecte().compareTo(campaign.getObjectifCfa()) >= 0) {
                         campaign.setStatut(CampaignStatus.FINANCEE);
                     }
+                    campaignRepository.save(campaign);
                     notificationService.notifyContribution(contribution);
                 } else {
                     // Rollback scenario: Synchronous logic thought it succeeded, but webhook says it failed.
@@ -136,6 +140,7 @@ public class ContributionService {
                         log.info("Rolling back campaign funds because Webhook reports cancellation.");
                         Campaign campaign = contribution.getCampaign();
                         campaign.setMontantCollecte(campaign.getMontantCollecte().subtract(contribution.getMontantNet()));
+                        campaignRepository.save(campaign);
                     }
                     contribution.setStatut(ContributionStatus.FAILED);
                 }
