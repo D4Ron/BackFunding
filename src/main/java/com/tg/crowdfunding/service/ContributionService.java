@@ -24,6 +24,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Transactional
 public class ContributionService {
 
     private final ContributionRepository contributionRepository;
@@ -83,10 +84,13 @@ public class ContributionService {
 
         contributionRepository.save(contribution);
 
-        // Campaign amount is updated ONLY via webhook callback (updateContributionStatus)
-        // to avoid double-crediting when FedaPay returns success synchronously AND fires the webhook.
-        // In sandbox mode, the webhook should still fire to sandbox callback URLs.
+        // Instantly credit the campaign to support Sandbox operations where webhooks might not reach.
+        // Webhook method protects against double-crediting via idempotency checks.
         if (result.success()) {
+            campaign.setMontantCollecte(campaign.getMontantCollecte().add(montantNet));
+            if (campaign.getMontantCollecte().compareTo(campaign.getObjectifCfa()) >= 0) {
+                campaign.setStatut(CampaignStatus.FINANCEE);
+            }
             notificationService.notifyContribution(contribution);
         }
         return toResponse(contribution);
@@ -105,22 +109,38 @@ public class ContributionService {
         log.info("updateContributionStatus called — reference: {}, success: {}", reference, success);
         contributionRepository.findByReferenceTransaction(reference).ifPresentOrElse(
             contribution -> {
-                log.info("Contribution found id={}, setting status to {}",
-                    contribution.getId(), success ? "SUCCESS" : "FAILED");
-                contribution.setStatut(success ? ContributionStatus.SUCCESS
-                                               : ContributionStatus.FAILED);
-                contributionRepository.save(contribution);
+                log.info("Contribution found id={}, current status={}, incoming webhook success={}",
+                    contribution.getId(), contribution.getStatut(), success);
+
+                // Idempotency: Skip if already handled perfectly.
+                if (success && contribution.getStatut() == ContributionStatus.SUCCESS) {
+                    log.info("Contribution already SUCCESS. Skipping to correctly prevent double-crediting.");
+                    return;
+                }
+                if (!success && contribution.getStatut() == ContributionStatus.FAILED) {
+                    log.info("Contribution already FAILED. Skipping.");
+                    return;
+                }
 
                 if (success) {
+                    contribution.setStatut(ContributionStatus.SUCCESS);
                     Campaign campaign = contribution.getCampaign();
-                    campaign.setMontantCollecte(
-                        campaign.getMontantCollecte().add(contribution.getMontantNet()));
-                    if (campaign.getMontantCollecte()
-                            .compareTo(campaign.getObjectifCfa()) >= 0) {
+                    campaign.setMontantCollecte(campaign.getMontantCollecte().add(contribution.getMontantNet()));
+                    if (campaign.getMontantCollecte().compareTo(campaign.getObjectifCfa()) >= 0) {
                         campaign.setStatut(CampaignStatus.FINANCEE);
                     }
                     notificationService.notifyContribution(contribution);
+                } else {
+                    // Rollback scenario: Synchronous logic thought it succeeded, but webhook says it failed.
+                    if (contribution.getStatut() == ContributionStatus.SUCCESS) {
+                        log.info("Rolling back campaign funds because Webhook reports cancellation.");
+                        Campaign campaign = contribution.getCampaign();
+                        campaign.setMontantCollecte(campaign.getMontantCollecte().subtract(contribution.getMontantNet()));
+                    }
+                    contribution.setStatut(ContributionStatus.FAILED);
                 }
+
+                contributionRepository.save(contribution);
             },
             () -> log.warn("No contribution found for reference: {} — possible reference mismatch", reference)
         );
