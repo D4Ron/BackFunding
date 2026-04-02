@@ -35,7 +35,7 @@ public class FedaPayService {
         try {
             // Step 1 — Create transaction
             Map<String, Object> transactionData = createTransaction(
-                    montant, customerNom, customerEmail);
+                    montant, customerNom, customerEmail, telephone);
 
             if (transactionData == null) {
                 log.error("FedaPay: transaction creation returned null");
@@ -75,7 +75,8 @@ public class FedaPayService {
     @SuppressWarnings("unchecked")
     private Map<String, Object> createTransaction(BigDecimal montant,
                                                   String customerNom,
-                                                  String customerEmail) {
+                                                  String customerEmail,
+                                                  String telephone) {
         try {
             HttpHeaders headers = buildHeaders();
 
@@ -87,6 +88,10 @@ public class FedaPayService {
             customer.put("firstname", firstname);
             customer.put("lastname", lastname);
             customer.put("email", customerEmail);
+            customer.put("phone_number", Map.of(
+                    "number", telephone,
+                    "country", "TG"
+            ));
 
             Map<String, Object> currency = new HashMap<>();
             currency.put("iso", "XOF");
