@@ -194,7 +194,7 @@ public class FedaPayService {
                     methodePaiement, telephone);
 
             ResponseEntity<Map> response = restTemplate.postForEntity(
-                    baseUrl + "/transactions/" + methodePaiement,
+                    baseUrl + "/" + methodePaiement,
                     entity, Map.class);
 
             log.info("FedaPay sendPayment response status: {}",
@@ -204,6 +204,10 @@ public class FedaPayService {
 
             return response.getStatusCode().is2xxSuccessful();
 
+        } catch (org.springframework.web.client.HttpClientErrorException e) {
+            log.error("FedaPay sendMobileMoneyPayment HTTP error: status={}, body={}, url={}/{}",
+                    e.getStatusCode(), e.getResponseBodyAsString(), baseUrl, methodePaiement);
+            return false;
         } catch (Exception e) {
             log.error("FedaPay sendMobileMoneyPayment error: {}", e.getMessage(), e);
             return false;
