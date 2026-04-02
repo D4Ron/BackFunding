@@ -194,7 +194,7 @@ public class FedaPayService {
                     methodePaiement, telephone);
 
             ResponseEntity<Map> response = restTemplate.postForEntity(
-                    baseUrl + "/" + methodePaiement,
+                    baseUrl + "/transactions/" + methodePaiement,
                     entity, Map.class);
 
             log.info("FedaPay sendPayment response status: {}",
