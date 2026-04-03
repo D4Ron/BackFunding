@@ -33,9 +33,14 @@ public class FedaPayService {
                                         String customerNom,
                                         String customerEmail) {
         try {
+            // In sandbox, remap phone and method to FedaPay test values
+            boolean sandbox = baseUrl.contains("sandbox");
+            String effectivePhone = sandbox ? "64000001" : telephone; // 64000001 = success scenario
+            String effectiveMethod = sandbox ? "momo_test" : methodePaiement;
+
             // Step 1 — Create transaction
             Map<String, Object> transactionData = createTransaction(
-                    montant, customerNom, customerEmail, telephone);
+                    montant, customerNom, customerEmail, effectivePhone);
 
             if (transactionData == null) {
                 log.error("FedaPay: transaction creation returned null");
@@ -56,10 +61,8 @@ public class FedaPayService {
             log.info("FedaPay: got token for transaction {}", transactionId);
 
             // Step 3 — Send Mobile Money payment request
-            // In sandbox, only "momo_test" is available; real operators work in production
-            String effectiveMethod = baseUrl.contains("sandbox") ? "momo_test" : methodePaiement;
             boolean success = sendMobileMoneyPayment(
-                    token, effectiveMethod, telephone);
+                    token, effectiveMethod, effectivePhone);
 
             log.info("FedaPay: payment result for transaction {} via {}: {}",
                     transactionId, effectiveMethod, success ? "SUCCESS" : "FAILED");
