@@ -56,11 +56,13 @@ public class FedaPayService {
             log.info("FedaPay: got token for transaction {}", transactionId);
 
             // Step 3 — Send Mobile Money payment request
+            // In sandbox, only "momo_test" is available; real operators work in production
+            String effectiveMethod = baseUrl.contains("sandbox") ? "momo_test" : methodePaiement;
             boolean success = sendMobileMoneyPayment(
-                    token, methodePaiement, telephone);
+                    token, effectiveMethod, telephone);
 
-            log.info("FedaPay: payment result for transaction {}: {}",
-                    transactionId, success ? "SUCCESS" : "FAILED");
+            log.info("FedaPay: payment result for transaction {} via {}: {}",
+                    transactionId, effectiveMethod, success ? "SUCCESS" : "FAILED");
 
             String reference = "FEDA-" + transactionId;
             return new FedaPayResult(success, reference, transactionId);
